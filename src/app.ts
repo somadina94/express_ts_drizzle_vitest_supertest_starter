@@ -6,34 +6,64 @@ import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
+import { pinoHttp } from "pino-http";
+import { randomUUID } from "crypto";
+import type { IncomingMessage, ServerResponse } from "http";
 
 import { env } from "./config/env.js";
 import globalErrorHandler from "./controllers/error.controller.js";
 import AppError from "./utils/appError.js";
-
+import { logger } from "./utils/logger.js";
+import { healthRoutes } from "./routes/index.js";
 import type { Request, Response, NextFunction } from "express";
-import { healthRoute } from "./routes/index.js";
 
 const app = express();
 
-app.set("trust proxy", 1);
+app.set("trust proxy", env.trustProxy);
 
 if (env.nodeEnv === "development") {
   app.use(morgan("dev"));
 }
 
+app.use(
+  pinoHttp({
+    logger,
+    genReqId: (req: IncomingMessage, res: ServerResponse) => {
+      const existingId = req.headers["x-request-id"];
+      const requestId = Array.isArray(existingId) ? existingId[0] : existingId;
+      const id = requestId || randomUUID();
+      res.setHeader("x-request-id", id);
+      return id;
+    },
+  }),
+);
+
 app.use(helmet());
-const corsOptions = { origin: true, credentials: true } as const;
+const corsOptions: cors.CorsOptions = {
+  credentials: true,
+  origin(origin, callback) {
+    if (!origin && env.nodeEnv !== "production") {
+      callback(null, true);
+      return;
+    }
+
+    if (origin && env.corsOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new AppError("Not allowed by CORS", 403));
+  },
+};
 app.use(cors(corsOptions));
+app.use(hpp());
 
 const limiter = rateLimit({
-  max: 1000,
-  windowMs: 60 * 60 * 1000,
+  max: env.rateLimitMax,
+  windowMs: env.rateLimitWindowMs,
   message: "Too many requests from this IP, please try again in an hour!",
 });
 app.use("/api", limiter);
-
-app.use(hpp());
 
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
@@ -46,7 +76,7 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   next();
 });
 
-app.use("/api/v1/health", healthRoute);
+app.use("/api/v1/health", healthRoutes);
 
 app.use((req: Request, _res: Response, next: NextFunction) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

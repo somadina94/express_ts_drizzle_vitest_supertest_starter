@@ -3,6 +3,16 @@ import { Pool } from "pg";
 import { env } from "../config/env.js";
 import * as schema from "../db/schema.js";
 
+let dbConnected = false;
+
+export function setDbConnected(value: boolean): void {
+  dbConnected = value;
+}
+
+export function getDbConnected(): boolean {
+  return dbConnected;
+}
+
 export const pool = new Pool({
   connectionString: env.databaseUrl,
 });
@@ -20,5 +30,6 @@ export const connectDb = async (): Promise<void> => {
 };
 
 export const closeDb = async (): Promise<void> => {
+  setDbConnected(false);
   await pool.end();
 };

@@ -1,2 +1,5 @@
-### Get application health status
-GET http://localhost:3000/health HTTP/1.1
+### Liveness (process only)
+GET http://localhost:3000/api/v1/health/live HTTP/1.1
+
+### Readiness (PostgreSQL)
+GET http://localhost:3000/api/v1/health/ready HTTP/1.1

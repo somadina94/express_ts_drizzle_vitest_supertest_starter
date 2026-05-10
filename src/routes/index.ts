@@ -1,4 +1,1 @@
-// all routes are imported here
-import healthRoute from "./health.route.js";
-
-export { healthRoute };
+export { default as healthRoutes } from "./health.routes.js";

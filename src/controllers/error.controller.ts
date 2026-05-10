@@ -13,16 +13,12 @@ type PostgresError = Error & {
 };
 
 const isPostgresError = (err: unknown): err is PostgresError =>
-  err instanceof Error &&
-  typeof (err as { code?: unknown }).code === "string";
+  err instanceof Error && typeof (err as { code?: unknown }).code === "string";
 
 const handlePostgresError = (err: PostgresError): AppError => {
   if (err.code === "23505") {
     const field = err.column ?? err.constraint ?? "field";
-    return new AppError(
-      `Duplicate value for ${field}. Please use another value!`,
-      400,
-    );
+    return new AppError(`Duplicate value for ${field}. Please use another value!`, 400);
   }
   if (err.code === "23503") {
     return new AppError("Related record not found.", 400);
@@ -79,12 +75,7 @@ function normalizeToAppError(err: unknown): AppError {
   return new AppError(msg, 500);
 }
 
-export default (
-  err: unknown,
-  _req: Request,
-  res: Response,
-  _next: NextFunction,
-) => {
+export default (err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   const isDev = env.nodeEnv === "development";
   const error = normalizeToAppError(err);
 

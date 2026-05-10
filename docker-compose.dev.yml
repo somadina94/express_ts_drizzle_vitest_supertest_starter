@@ -1,18 +1,27 @@
+name: express-ts-drizzle-base-dev
+
 services:
   postgres:
-    image: postgres:18.1
+    image: postgres:18-alpine
     container_name: express-ts-drizzle-base-postgres-dev
+    attach: false
     restart: unless-stopped
+    logging:
+      driver: "none"
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: secret
-      POSTGRES_DB: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - postgres-dev:/var/lib/postgresql
+      - postgres-dev:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -24,15 +33,20 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     container_name: express-ts-drizzle-base-api-dev
+    env_file:
+      - .env
     ports:
       - "${PORT:-3000}:${PORT:-3000}"
     environment:
       NODE_ENV: development
       PORT: ${PORT:-3000}
-      DATABASE_URL: postgresql://postgres:secret@postgres:5432/postgres
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgresql://postgres:secret@postgres:5432/postgres}
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-90d}
       JWT_COOKIE_EXPIRES_IN: ${JWT_COOKIE_EXPIRES_IN:-90}
+      API_URL: ${API_URL:-http://localhost:${PORT:-3000}}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:${PORT:-3000}}
+      LOG_PRETTY: "true"
     develop:
       watch:
         - action: sync

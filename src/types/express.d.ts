@@ -1,3 +1,8 @@
+/** Placeholder for future auth middleware. */
+export interface RequestUser {
+  id: string;
+}
+
 declare global {
   namespace Express {
     interface Request {

@@ -3,30 +3,11 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-ARG DATABASE_URL
-ARG NODE_ENV
-ARG PORT
-ARG JWT_SECRET
-ARG JWT_EXPIRES_IN
-ARG JWT_COOKIE_EXPIRES_IN
-
-ENV DATABASE_URL=${DATABASE_URL}
-ENV NODE_ENV=${NODE_ENV}
-ENV PORT=${PORT}
-ENV JWT_SECRET=${JWT_SECRET}
-ENV JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
-ENV JWT_COOKIE_EXPIRES_IN=${JWT_COOKIE_EXPIRES_IN}
-
-# Copy package files and Drizzle config
-COPY package*.json tsconfig*.json drizzle.config.ts ./
-
-# Install all dependencies including devDependencies
-RUN npm install --legacy-peer-deps
-
-# Copy source code
+COPY package*.json tsconfig*.json ./
 COPY src ./src
 
-# Compile TypeScript
+RUN npm ci
+
 RUN npm run build
 
 # Stage 2: Production image
@@ -34,18 +15,17 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Copy built app and production dependencies
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package*.json ./
-RUN npm install --only=production --legacy-peer-deps
+COPY package*.json ./
+RUN npm ci --omit=dev && npm cache clean --force
 
-# Expose port
+COPY --from=builder --chown=node:node /app/dist ./dist
+
 ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
 
-# Create logs directory
-RUN mkdir -p /app/logs
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 CMD node -e "fetch('http://127.0.0.1:' + (process.env.PORT || 3000) + '/api/v1/health/ready').then((res) => process.exit(res.ok ? 0 : 1)).catch(() => process.exit(1))"
 
-# Start the server (set DATABASE_URL at runtime)
+USER node
+
 CMD ["node", "dist/server.js"]

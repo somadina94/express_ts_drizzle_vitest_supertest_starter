@@ -1,43 +1,31 @@
+name: express-ts-drizzle-base-server
+
 services:
-  postgres:
-    image: postgres:18.1
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: secret
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres:/var/lib/postgresql
-    networks:
-      - express-ts-drizzle-base-network
   api:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        NODE_ENV: ${NODE_ENV}
-        PORT: ${PORT}
-        DATABASE_URL: ${DATABASE_URL}
-        JWT_SECRET: ${JWT_SECRET}
-        JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
-        JWT_COOKIE_EXPIRES_IN: ${JWT_COOKIE_EXPIRES_IN}
-    container_name: express-ts-drizzle-base-api
+    container_name: express-ts-drizzle-base-server
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:${PORT:-3000}"
     env_file:
       - .env
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgresql://postgres:secret@postgres:5432/postgres
-    depends_on:
-      - postgres
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:' + (process.env.PORT || 3000) + '/api/v1/health/ready').then((res) => process.exit(res.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
     restart: unless-stopped
     networks:
       - express-ts-drizzle-base-network
 
-volumes:
-  postgres:
-
 networks:
   express-ts-drizzle-base-network:
+    driver: bridge

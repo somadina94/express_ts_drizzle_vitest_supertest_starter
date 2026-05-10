@@ -1,5 +1,4 @@
-// all controllers are imported here
 import errorController from "./error.controller.js";
-import { healthCheck } from "./health.controller.js";
+import { liveCheck, readyCheck } from "./health.controller.js";
 
-export { errorController, healthCheck };
+export { errorController, liveCheck, readyCheck };

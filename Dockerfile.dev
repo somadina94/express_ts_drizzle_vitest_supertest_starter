@@ -6,7 +6,7 @@ ENV NODE_ENV=development
 ENV PORT=3000
 
 COPY package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm ci
 
 COPY drizzle.config.ts tsconfig*.json ./
 COPY drizzle ./drizzle

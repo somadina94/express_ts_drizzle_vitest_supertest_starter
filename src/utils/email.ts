@@ -14,16 +14,10 @@ export const isEmailConfigured = (): boolean =>
 
 export const createMailTransport = () => {
   const host = env.emailHost;
-  const port = env.emailPort ? Number(env.emailPort) : 587;
-  const secure =
-    env.emailSecure !== undefined
-      ? env.emailSecure === "true"
-      : port === 465;
-  const requireTLS = env.emailRequireTls === "true";
-  const rejectUnauthorized =
-    env.emailTlsRejectUnauthorized === undefined
-      ? true
-      : env.emailTlsRejectUnauthorized === "true";
+  const port = env.emailPort;
+  const secure = env.emailSecure !== undefined ? env.emailSecure : port === 465;
+  const requireTLS = env.emailRequireTls ?? false;
+  const rejectUnauthorized = env.emailTlsRejectUnauthorized ?? true;
   const user = env.emailAddress;
   const pass = env.emailPassword;
   if (!host || !user || !pass) {
